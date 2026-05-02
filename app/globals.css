@@ -20,13 +20,15 @@ body {
 .app {
   display: grid;
   grid-template-columns: 1fr 340px;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .chat-area {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  min-height: 100vh;
+  min-height: 0;
+  height: 100vh;
 }
 
 .header, .composer, .settings {
@@ -111,5 +113,8 @@ button { cursor: pointer; }
   .settings-overlay.open {
     opacity: 1;
     pointer-events: auto;
+  }
+  input, textarea, select {
+    font-size: 16px;
   }
 }
