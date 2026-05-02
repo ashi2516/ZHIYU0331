@@ -14,7 +14,19 @@ function createId() {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function parseUpstreamError(message: string) {
+  const matched = message.match(/request failed:\s*(\d{3})\s*([\s\S]*)$/i);
+  if (!matched) return null;
+
+  const status = Number(matched[1]);
+  const body = matched[2]?.trim() ?? '';
+  if (!Number.isInteger(status)) return null;
+
+  return { status, body };
+}
+
 export async function POST(request: Request) {
+  console.info('[api/chat] Enter route');
   try {
     const body = (await request.json()) as { message: string };
     const userInput = body.message?.trim();
@@ -30,15 +42,20 @@ export async function POST(request: Request) {
     ]);
 
     const activeProvider = settings.provider.activeProvider;
+    console.info('[api/chat] activeProvider:', activeProvider);
     const providerConfig = settings.provider.providers.find(
       (item) => item.providerType === activeProvider,
     );
+    console.info('[api/chat] providerConfigFound:', Boolean(providerConfig));
 
     if (!providerConfig) {
       return NextResponse.json({ error: `未找到 provider: ${activeProvider}` }, { status: 400 });
     }
+    console.info('[api/chat] baseUrl:', providerConfig.baseUrl);
+    console.info('[api/chat] model:', providerConfig.model);
 
     const apiKey = await getProviderSecret(activeProvider);
+    console.info('[api/chat] secretExists:', Boolean(apiKey));
     if (!apiKey) {
       return NextResponse.json({ error: `Provider(${activeProvider}) 未配置 API key。` }, { status: 400 });
     }
@@ -59,6 +76,11 @@ export async function POST(request: Request) {
 
     const hits = matchLorebookEntries(userInput, lorebook);
     const contextMessages = buildContextMessages(settings, nextSession, hits);
+    console.info('[api/chat] Upstream payload summary:', {
+      messageCount: contextMessages.length,
+      temperature: settings.modelTuning.temperature,
+      maxTokens: settings.modelTuning.maxTokens,
+    });
 
     const assistantReply = await requestChatCompletion({
       apiKey,
@@ -90,7 +112,24 @@ export async function POST(request: Request) {
       provider: activeProvider,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : '未知错误';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[api/chat] Failed with error:', error);
+
+    const rawMessage = error instanceof Error ? error.message : String(error ?? '未知错误');
+    const parsed = parseUpstreamError(rawMessage);
+
+    if (parsed) {
+      console.error('[api/chat] Upstream error detail:', {
+        status: parsed.status,
+        body: parsed.body,
+      });
+      return NextResponse.json(
+        {
+          error: `上游请求失败（${parsed.status}）: ${parsed.body || '无错误正文'}`,
+        },
+        { status: parsed.status },
+      );
+    }
+
+    return NextResponse.json({ error: `聊天请求失败: ${rawMessage}` }, { status: 500 });
   }
 }
