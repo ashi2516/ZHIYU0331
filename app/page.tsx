@@ -137,7 +137,18 @@ export default function Page() {
         </footer>
       </section>
 
+      <button
+        className={`settings-overlay ${mobileSettingsOpen ? 'open' : ''}`}
+        aria-label="关闭设置面板"
+        onClick={() => setMobileSettingsOpen(false)}
+      />
+
       <aside className={`settings ${mobileSettingsOpen ? 'open' : ''}`}>
+        <div className="settings-mobile-header">
+          <strong>设置</strong>
+          <button type="button" className="settings-close" onClick={() => setMobileSettingsOpen(false)}>关闭</button>
+        </div>
+
         <div className="panel">
           <h3>Provider 切换</h3>
           <select

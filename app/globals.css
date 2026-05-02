@@ -20,13 +20,15 @@ body {
 .app {
   display: grid;
   grid-template-columns: 1fr 340px;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .chat-area {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  min-height: 100vh;
+  min-height: 0;
+  height: 100vh;
 }
 
 .header, .composer, .settings {
@@ -34,7 +36,15 @@ body {
   border: 1px solid #374151;
 }
 
-.header { padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; }
+.header {
+  padding: 12px 16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
 .messages { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 .bubble { padding: 10px 12px; border-radius: 12px; max-width: 86%; white-space: pre-wrap; }
 .bubble.user { margin-left: auto; background: var(--bubble-user); }
@@ -50,19 +60,61 @@ button { cursor: pointer; }
 .meta { color: var(--muted); font-size: 12px; }
 
 .mobile-toggle { display: none; }
+.settings-overlay { display: none; }
+.settings-mobile-header { display: none; }
+.settings-close { width: auto; }
 
 @media (max-width: 900px) {
-  .app { grid-template-columns: 1fr; }
+  .app {
+    grid-template-columns: 1fr;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .chat-area {
+    min-height: 0;
+    height: 100dvh;
+  }
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+  }
   .settings {
     position: fixed;
     top: 0;
     right: 0;
     width: min(86vw, 360px);
     height: 100vh;
-    z-index: 20;
+    z-index: 50;
     transform: translateX(100%);
     transition: transform .2s ease;
+    border-left: 1px solid #374151;
   }
   .settings.open { transform: translateX(0); }
   .mobile-toggle { display: inline-flex; width: auto; }
+  .settings-mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .settings-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    border: 0;
+    padding: 0;
+    background: rgba(2, 6, 23, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+    z-index: 40;
+  }
+  .settings-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  input, textarea, select {
+    font-size: 16px;
+  }
 }
