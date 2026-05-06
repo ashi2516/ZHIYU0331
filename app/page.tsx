@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 type ProviderType = 'openai' | 'deepseek';
+type ViewType = 'home' | 'chat';
 
 type SettingsResponse = {
   provider: {
@@ -32,6 +33,12 @@ type SessionResponse = {
   lastHitLorebookEntryIds: string[];
 };
 
+const cards = [
+  { id: 'chat', title: '聊天', subtitle: '和知语说话', desc: '日常 · 剧情房间', status: 'open' },
+  { id: 'vault', title: '小金库', subtitle: '私房钱管理', desc: '收支记录 · 理财追踪', status: 'soon' },
+  { id: 'memory', title: '记忆库', subtitle: '知语的脑子', desc: '延续档案 · 日记 · 时间线', status: 'soon' },
+] as const;
+
 export default function Page() {
   const [settings, setSettings] = useState<SettingsResponse | null>(null);
   const [session, setSession] = useState<SessionResponse | null>(null);
@@ -41,9 +48,9 @@ export default function Page() {
   const [hits, setHits] = useState<Array<{ id: string; title: string }>>([]);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [providerKeys, setProviderKeys] = useState<Record<ProviderType, string>>({ openai: '', deepseek: '' });
+  const [view, setView] = useState<ViewType>('home');
 
   const activeProvider = settings?.provider.activeProvider;
-
   const activeProviderConfig = useMemo(
     () => settings?.provider.providers.find((item) => item.providerType === activeProvider),
     [settings, activeProvider],
@@ -112,29 +119,68 @@ export default function Page() {
   return (
     <main className="app">
       <section className="chat-area">
-        <header className="header">
-          <div>
-            <strong>Chat Space MVP</strong>
-            <div className="meta">当前 Provider：{activeProviderConfig?.providerType}</div>
-          </div>
-          <button className="mobile-toggle" onClick={() => setMobileSettingsOpen((v) => !v)}>设置</button>
-        </header>
-
-        <div className="messages">
-          {hits.length > 0 && (
-            <div className="meta">命中世界书：{hits.map((h) => h.title).join('、')}</div>
-          )}
-          {session.messages.map((message) => (
-            <div key={message.id} className={`bubble ${message.role}`}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+        {view === 'home' ? (
+          <div className="home-shell">
+            <div className="hero">
+              <div className="line-dot" />
+              <div className="hero-en">PILLOW SIDE</div>
+              <h1>枕边</h1>
+              <div className="hero-sub">知语 · 阿时</div>
+              <div className="line-dot" />
             </div>
-          ))}
-        </div>
 
-        <footer className="composer">
-          <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="输入消息..." rows={3} />
-          <button disabled={loading} onClick={sendMessage}>{loading ? '发送中...' : '发送'}</button>
-        </footer>
+            <div className="entry-list">
+              {cards.map((card) => (
+                <button
+                  key={card.id}
+                  className="entry-card"
+                  onClick={() => {
+                    if (card.id === 'chat') {
+                      setView('chat');
+                      return;
+                    }
+                    setError(`${card.title}以后开放`);
+                  }}
+                >
+                  <div className="entry-head">
+                    <strong>{card.title}</strong>
+                    {card.status === 'soon' && <span>以后开放</span>}
+                  </div>
+                  <p>{card.subtitle}</p>
+                  <small>{card.desc}</small>
+                </button>
+              ))}
+            </div>
+            {error && <p className="meta home-error">{error}</p>}
+          </div>
+        ) : (
+          <>
+            <header className="header">
+              <div className="header-title-wrap">
+                <button className="back-btn" onClick={() => setView('home')}>←</button>
+                <div>
+                  <strong>聊天</strong>
+                  <div className="meta">和知语说话</div>
+                </div>
+              </div>
+              <button className="mobile-toggle" onClick={() => setMobileSettingsOpen((v) => !v)}>设置</button>
+            </header>
+
+            <div className="messages">
+              {hits.length > 0 && <div className="meta">命中世界书：{hits.map((h) => h.title).join('、')}</div>}
+              {session.messages.map((message) => (
+                <div key={message.id} className={`bubble ${message.role}`}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                </div>
+              ))}
+            </div>
+
+            <footer className="composer">
+              <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="和知语说点什么…" rows={3} />
+              <button disabled={loading} onClick={sendMessage}>{loading ? '发送中...' : '发送'}</button>
+            </footer>
+          </>
+        )}
       </section>
 
       <button
@@ -147,6 +193,11 @@ export default function Page() {
         <div className="settings-mobile-header">
           <strong>设置</strong>
           <button type="button" className="settings-close" onClick={() => setMobileSettingsOpen(false)}>关闭</button>
+        </div>
+
+        <div className="panel provider-meta">
+          <span>当前 Provider</span>
+          <strong>{activeProviderConfig?.providerType}</strong>
         </div>
 
         <div className="panel">
